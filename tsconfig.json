@@ -1,0 +1,39 @@
+//https://www.typescriptlang.org/tsconfig
+
+{
+	"compilerOptions": {
+		"forceConsistentCasingInFileNames": true,
+
+		//type checking https://www.typescriptlang.org/tsconfig#Type_Checking_6248
+		"strict": true,
+
+		//Modules https://www.typescriptlang.org/tsconfig#Modules_6244
+		//    "moduleResolution": "node",
+		"module": "NodeNext",
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["./src/*"],
+			"@utils/*": ["./src/utils/*"],
+			"@type/*": ["./src/typings/*"]
+		},
+
+		//emit https://www.typescriptlang.org/tsconfig#Emit_6246
+		"removeComments": true,
+		"noEmitOnError": true,
+		"outDir": "dist",
+
+		//JS support https://www.typescriptlang.org/tsconfig#JavaScript_Support_6247
+		"allowJs": false,
+
+		//Interop Constraints https://www.typescriptlang.org/tsconfig#Interop_Constraints_6252
+		"esModuleInterop": true,
+
+		//Lib https://www.typescriptlang.org/tsconfig#lib
+		"target": "ES2022",
+
+		//Completeness https://www.typescriptlang.org/tsconfig#Completeness_6257
+		"skipLibCheck": true
+	},
+	"include": ["src"],
+	"exclude": ["node_modules"]
+}

@@ -1,0 +1,29 @@
+{
+	"name": "imglib",
+	"version": "0.0.1",
+	"description": "",
+	"main": "/dist/index.js",
+	"type": "module",
+	"scripts": {
+		"test": "npx vitest"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Kenny619/imgLib.git"
+	},
+	"author": "",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/Kenny619/imgLib/issues"
+	},
+	"homepage": "https://github.com/Kenny619/imgLib#readme",
+	"devDependencies": {
+		"@biomejs/biome": "1.7.3",
+		"@types/node": "^20.12.13",
+		"typescript": "^5.4.5",
+		"vitest": "^1.6.0"
+	},
+	"dependencies": {
+		"sharp": "^0.33.4"
+	}
+}
