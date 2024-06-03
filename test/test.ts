@@ -1,5 +1,19 @@
-import Dirlbass from "../base.ts";
+import ImgL from "../src/resize.ts";
 import { describe, expect, test } from "vitest";
+
+const srcFile ="./imgs/Kenny_avatar.jpg";
+const width = 800;
+const height = 400;
+const outputFormat = "gif";
+const option = {
+	source: "./test/imgs/",
+	width: 800,
+	height: 400,
+	outputFormat: outputFormat,
+	destination: "./test/imgs/multiple/"
+}
+const img = new ImgL();
+await img.resize(option);
 
 /*Scenarios
 
@@ -14,8 +28,7 @@ fn: validateSrcAndDst
 08. Setting a non-path string to dstDir throws validateSrcAndDst failed error 
 
 */
-const dirl = new Dirlbass();
-
+/*
 describe("Fn: validateSrcAndDst", () => {
 	test("01. Valid srcDir and valid dstDir resolves", async () => {
 		const srcDir = "./src/tests/files/srcDir";
@@ -79,164 +92,4 @@ describe("Fn: validateSrcAndDst", () => {
 		);
 	});
 });
-
-/*
-
-fn: isFilePathMatchFilters 
-pathA =  ./src/tests/files/filter/dir2/file2.txt
-pathB ./src/tests/files/filter/file1.png
-pathC ./src/tests/files/filter/dir2/dir3/file5.txt
-
-09. dirNameFilter=filter -> ture, true, true
-10. dirNameFilter=dir3 -> false, false, true
-11. dirNameFilter=test -> false, false, false
-12. fileNameFilter=file -> true, true, true
-13. fileNameFilter=5 -> false, false, true,
-14. fileNameFilter=config -> false, false, false 
-15. extNameFilter=txt -> true, false, true 
-16. extNameFilter=png -> false, true, false
-17. extNameFilter=xls -> false, false, false
-18. dirname=dir2 & filename=file5 -> false, false, true, 
-19. dirname=dir2 & extname=txt  -> true, false, true
-20. filename=file & extname=png -> false, true, false 
-21. dirname=filter & filename=file & extname=txt -> true, false, true
-22. dirname=tmp & filename= app & extname=log -> false, false, false 
 */
-
-describe("Fn: getFileCount", () => {
-	const pathA = "./src/tests/files/filter/dir2/file2.txt";
-	const pathB = "./src/tests/files/filter/file1.png";
-	const pathC = "./src/tests/files/filter/dir2/dir3/file5.txt";
-
-	test("09. dirNameFilter=filter -> ture, true, true", async () => {
-		const filter = await dirl.createRegexFilters({
-			dirNameFilter: "filter"
-		});
-		await expect(dirl.isFilePathMatchFilters(pathA, filter)).resolves.toBe(true);
-		await expect(dirl.isFilePathMatchFilters(pathB, filter)).resolves.toBe(true);
-		await expect(dirl.isFilePathMatchFilters(pathC, filter)).resolves.toBe(true);
-	});
-	test("", async () => {
-		const filter = await dirl.createRegexFilters({
-			dirNameFilter: "",
-			fileNameFilter: "",
-			extNameFilter: ""
-		});
-		await expect(dirl.isFilePathMatchFilters(pathA, filter)).resolves.toBe(true);
-		await expect(dirl.isFilePathMatchFilters(pathB, filter)).resolves.toBe(true);
-		await expect(dirl.isFilePathMatchFilters(pathC, filter)).resolves.toBe(true);
-	});
-	test("10. dirNameFilter=dir3 -> false, false, true", async () => {
-		const filter = await dirl.createRegexFilters({
-			dirNameFilter: "dir3"
-		});
-		await expect(dirl.isFilePathMatchFilters(pathA, filter)).resolves.toBe(false);
-		await expect(dirl.isFilePathMatchFilters(pathB, filter)).resolves.toBe(false);
-		await expect(dirl.isFilePathMatchFilters(pathC, filter)).resolves.toBe(true);
-	});
-	test("11. dirNameFilter=test -> false, false, false", async () => {
-		const filter = await dirl.createRegexFilters({
-			dirNameFilter: "test"
-		});
-		await expect(dirl.isFilePathMatchFilters(pathA, filter)).resolves.toBe(true);
-		await expect(dirl.isFilePathMatchFilters(pathB, filter)).resolves.toBe(true);
-		await expect(dirl.isFilePathMatchFilters(pathC, filter)).resolves.toBe(true);
-	});
-	test("12. fileNameFilter=file -> true, true, true", async () => {
-		const filter = await dirl.createRegexFilters({
-			dirNameFilter: "",
-			fileNameFilter: "",
-			extNameFilter: ""
-		});
-		await expect(dirl.isFilePathMatchFilters(pathA, filter)).resolves.toBe(true);
-		await expect(dirl.isFilePathMatchFilters(pathB, filter)).resolves.toBe(true);
-		await expect(dirl.isFilePathMatchFilters(pathC, filter)).resolves.toBe(true);
-	});
-	test("13. fileNameFilter=5 -> false, false, true", async () => {
-		const filter = await dirl.createRegexFilters({
-			fileNameFilter: "5"
-		});
-		await expect(dirl.isFilePathMatchFilters(pathA, filter)).resolves.toBe(false);
-		await expect(dirl.isFilePathMatchFilters(pathB, filter)).resolves.toBe(false);
-		await expect(dirl.isFilePathMatchFilters(pathC, filter)).resolves.toBe(true);
-	});
-	test("14. fileNameFilter=config -> false, false, false", async () => {
-		const filter = await dirl.createRegexFilters({
-			fileNameFilter: "config"
-		});
-		await expect(dirl.isFilePathMatchFilters(pathA, filter)).resolves.toBe(false);
-		await expect(dirl.isFilePathMatchFilters(pathB, filter)).resolves.toBe(false);
-		await expect(dirl.isFilePathMatchFilters(pathC, filter)).resolves.toBe(false);
-	});
-	test("15. extNameFilter=txt -> true, false, true", async () => {
-		const filter = await dirl.createRegexFilters({
-			extNameFilter: "txt"
-		});
-		await expect(dirl.isFilePathMatchFilters(pathA, filter)).resolves.toBe(true);
-		await expect(dirl.isFilePathMatchFilters(pathB, filter)).resolves.toBe(false);
-		await expect(dirl.isFilePathMatchFilters(pathC, filter)).resolves.toBe(true);
-	});
-	test("16. extNameFilter=png -> false, true, false", async () => {
-		const filter = await dirl.createRegexFilters({
-			extNameFilter: "png"
-		});
-		await expect(dirl.isFilePathMatchFilters(pathA, filter)).resolves.toBe(false);
-		await expect(dirl.isFilePathMatchFilters(pathB, filter)).resolves.toBe(true);
-		await expect(dirl.isFilePathMatchFilters(pathC, filter)).resolves.toBe(false);
-	});
-	test("17. extNameFilter=xls -> false, false, false", async () => {
-		const filter = await dirl.createRegexFilters({
-			extNameFilter: "xls"
-		});
-		await expect(dirl.isFilePathMatchFilters(pathA, filter)).resolves.toBe(false);
-		await expect(dirl.isFilePathMatchFilters(pathB, filter)).resolves.toBe(false);
-		await expect(dirl.isFilePathMatchFilters(pathC, filter)).resolves.toBe(false);
-	});
-	test("18. dirname=dir2 & filename=file5 -> false, false, true", async () => {
-		const filter = await dirl.createRegexFilters({
-			dirNameFilter: "dir2",
-			fileNameFilter: "file5"
-		});
-		await expect(dirl.isFilePathMatchFilters(pathA, filter)).resolves.toBe(false);
-		await expect(dirl.isFilePathMatchFilters(pathB, filter)).resolves.toBe(false);
-		await expect(dirl.isFilePathMatchFilters(pathC, filter)).resolves.toBe(true);
-	});
-	test("19. dirname=dir2 & extname=txt  -> true, false, true", async () => {
-		const filter = await dirl.createRegexFilters({
-			dirNameFilter: "dir2",
-			extNameFilter: "txt"
-		});
-		await expect(dirl.isFilePathMatchFilters(pathA, filter)).resolves.toBe(true);
-		await expect(dirl.isFilePathMatchFilters(pathB, filter)).resolves.toBe(false);
-		await expect(dirl.isFilePathMatchFilters(pathC, filter)).resolves.toBe(true);
-	});
-	test("20. filename=file & extname=png -> false, true, false", async () => {
-		const filter = await dirl.createRegexFilters({
-			fileNameFilter: "file",
-			extNameFilter: "png"
-		});
-		await expect(dirl.isFilePathMatchFilters(pathA, filter)).resolves.toBe(false);
-		await expect(dirl.isFilePathMatchFilters(pathB, filter)).resolves.toBe(true);
-		await expect(dirl.isFilePathMatchFilters(pathC, filter)).resolves.toBe(false);
-	});
-	test("21. dirname=filter & filename=file & extname=txt -> true, false, true", async () => {
-		const filter = await dirl.createRegexFilters({
-			dirNameFilter: "filter",
-			fileNameFilter: "file",
-			extNameFilter: "txt"
-		});
-		await expect(dirl.isFilePathMatchFilters(pathA, filter)).resolves.toBe(true);
-		await expect(dirl.isFilePathMatchFilters(pathB, filter)).resolves.toBe(false);
-		await expect(dirl.isFilePathMatchFilters(pathC, filter)).resolves.toBe(true);
-	});
-	test("22. dirname=tmp & filename= app & extname=log -> false, false, false", async () => {
-		const filter = await dirl.createRegexFilters({
-			dirNameFilter: "tmp",
-			fileNameFilter: "app",
-			extNameFilter: "log"
-		});
-		await expect(dirl.isFilePathMatchFilters(pathA, filter)).resolves.toBe(false);
-		await expect(dirl.isFilePathMatchFilters(pathB, filter)).resolves.toBe(false);
-		await expect(dirl.isFilePathMatchFilters(pathC, filter)).resolves.toBe(false);
-	});
-});

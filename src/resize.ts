@@ -1,10 +1,20 @@
 import fsp from "node:fs/promises";
 import path from "node:path";
-import { Worker } from "node:worker_threads";
+import { Worker, isMainThread, workerData, parentPort } from "node:worker_threads";
 import sharp from "sharp";
 import type { FormatEnum } from "sharp";
+import { fileURLToPath } from 'node:url';
 
-class Resize {
+
+type inputOptions = {
+	source: string;
+	destination?: string;
+	width?: number;
+	height?: number;
+	outputFormat?: string;
+};
+
+class ImgL {
 	#srcFile: string;
 	#srcDir: string;
 	#srcFiles: string[];
@@ -39,84 +49,83 @@ class Resize {
 		];
 	}
 
-	width(w: number) {
-		this.#newWidth = w;
-		return this;
+
+	async resize(option: inputOptions) {
+		await this.#validateInputOptions(option);
+
+		if (this.#srcFile) {
+			await this.#resizeSingleFile(this.#srcFile);
+		}
+
+		if(this.#srcDir){
+
+			const workers = this.#srcFiles.map((file) =>
+				this.#workerWrapper(file)
+			);
+			await Promise.all(workers);
+		}
 	}
 
-	height(h: number) {
-		this.#newHeight = h;
-		return this;
-	}
 
-	fromDirectory(dir: string) {
-		this.#checkSrcDir(dir)
-			.then(() => {
-				this.#srcDir = dir;
-			})
-			.catch((e) => {
-				throw e;
-			});
-		return this;
-	}
+	async #validateInputOptions(option: inputOptions): Promise<void> {
+		const { source, destination, width, height, outputFormat } = option;
 
-	fromFile(file: string) {
-		this.#checkSrcFile(file)
-			.then(() => {
-				this.#srcFile = file;
-			})
-			.catch((e) => {
-				throw e;
-			});
-		return this;
-	}
+		//validate and set source
+		if (!source) throw new Error("source is required");
 
-	toFormat(format: string) {
-		this.#outputFormat = format;
-		return this;
-	}
+		try {
+			const stat = await fsp.stat(source);
+			if (stat.isFile()) await this.#checkSrcFile(source);
+			if (stat.isDirectory()) await this.#checkSrcDir(source);
+		} catch (e) {
+			throw `${e}`;
+		}
 
-	toDirectory(dir: string) {
-		this.#checkDstDir(dir)
-			.then(() => {
-				this.#dstDir = dir;
-			})
-			.catch((e) => {
-				throw e;
-			});
-
-		return this;
+		//set width and height
+		if (width) this.#newWidth = width;
+		if (height) this.#newHeight = height;
+		//set output format
+		this.#setOutputFormat(outputFormat);
+		//set destination
+		await this.#setDstDir(source, destination);
 	}
-	async #workerWrapper(sharpInstance: Promise<sharp.OutputInfo>): Promise<void> {
+	
+
+	async #workerWrapper(file: string): Promise<void> {
+		const __filename = fileURLToPath(import.meta.url);
+
 		return new Promise((resolve, reject) => {
-			const worker = new Worker(__filename, { workerData: sharpInstance });
+if(isMainThread){
+	const worker = new Worker(__filename, {workerData: file} );
 
-			worker.on("message", resolve); // Resolve promise when done
-			worker.on("error", reject); // Reject promise on error
-			worker.on("exit", (code) => {
-				if (code !== 0) {
-					reject(new Error(`Worker stopped with exit code ${code}`));
-				}
+	worker.on("message", resolve); // Resolve promise when done
+	worker.on("error", reject); // Reject promise on error
+	worker.on("exit", (code) => {
+		if (code !== 0) {
+			reject(new Error(`Worker stopped with exit code ${code}`));
+		}
+	
+
 			});
+}else{
+	this.#resizeSingleFile(workerData);
+    parentPort?.postMessage(` \"${workerData}\".`);
+}
 		});
 	}
 
-	async #resizeSingleFile(file: string): Promise<sharp.OutputInfo> {
+	async #resizeSingleFile(filePath: string): Promise<sharp.OutputInfo> {
 		//initialize sharp instance
-		const sharpInstance = sharp(file);
+		const sharpInstance = sharp(filePath);
 		//set new dimension
 		const metadata = await sharpInstance.metadata();
 		const newDimension = this.#setNewDimension(metadata);
-		//set output format
-		this.#setOutputFormat(file);
-		//set output Dir
-		this.#setOutputDir(file);
 
 		//set new filename
-		const filename = `${path.basename(file, path.extname(file))}.${this.#outputFormat}`;
-
-		//return a resize single image function
-		return sharpInstance
+		const filename = `${path.basename(filePath, path.extname(filePath))}.${this.#outputFormat}`;
+			
+			
+			return sharpInstance
 			.resize(newDimension.width, newDimension.height, {
 				kernel: sharp.kernel.lanczos3,
 				fit: sharp.fit.cover,
@@ -126,53 +135,49 @@ class Resize {
 			.toFile(path.join(this.#dstDir, filename));
 	}
 
-	async exe() {
-		if (this.#srcFile) {
-			try {
-				this.#checkSrcFile(this.#srcFile);
-			} catch (e) {
-				throw new Error(`#checkSrcFile failed.  ${e}`);
-			}
-			await this.#resizeSingleFile(this.#srcFile);
-		}
-
-		if (this.#srcDir) {
-			try {
-				this.#checkSrcDir(this.#srcDir);
-			} catch (e) {
-				throw new Error(`#checkSrcDir failed.  ${e}`);
-			}
-
-			//get image file paths from the directory
-			const workers = this.#srcFiles.map((file) =>
-				this.#workerWrapper(this.#resizeSingleFile(file))
-			);
-			Promise.all(workers);
-		}
-	}
-
 	//Set output directory
-	#setOutputDir(file: string) {
-		if (this.#dstDir === null) {
-			const now = new Date();
-			const year = now.getFullYear();
-			const month = String(now.getMonth() + 1).padStart(2, "0");
-			const day = String(now.getDate()).padStart(2, "0");
-			const hours = String(now.getHours()).padStart(2, "0");
-			const minutes = String(now.getMinutes()).padStart(2, "0");
-			const seconds = String(now.getSeconds()).padStart(2, "0");
-
-			const dirname = `resized - ${year}${month}${day}${hours}${minutes}${seconds}`;
-			this.#dstDir = path.join(path.dirname(file), dirname);
+	async #setDstDir(source: string, destination: string | undefined): Promise<void> {
+		if (destination) {
+			try {
+				await this.#checkDstDir(destination);
+				this.#dstDir = destination;
+				return;
+			} catch (e) {
+				throw new Error(`${e}`);
+			}
 		}
+
+		//if destination was not passed
+		const now = new Date();
+		const year = now.getFullYear();
+		const month = String(now.getMonth() + 1).padStart(2, "0");
+		const day = String(now.getDate()).padStart(2, "0");
+		const hours = String(now.getHours()).padStart(2, "0");
+		const minutes = String(now.getMinutes()).padStart(2, "0");
+		const seconds = String(now.getSeconds()).padStart(2, "0");
+
+		const dirName = `resized - ${year}${month}${day}${hours}${minutes}${seconds}`;
+		
+		if(this.#srcFile) this.#dstDir = path.join(path.dirname(source), dirName);
+		if(this.#srcDir) this.#dstDir = path.join(source, dirName);
+		this.#checkDstDir(this.#dstDir);
+		//check if destination is a full path or a relative path
+		/*
+		if (path.isAbsolute(source)) {
+			this.#dstDir = path.join(source, dirName);
+		} else {
+			this.#dstDir = path.join(path.dirname(source), dirName);
+		}
+		*/
 	}
 
 	//Retrun output format
-	#setOutputFormat(file: string) {
-		if (this.#outputFormat === null) {
-			const ext = path.extname(file);
-			this.#outputFormat = this.#compatibleFormats.includes(ext) ? ext : "jpg";
-		}
+	#setOutputFormat(outputFormat: string | undefined) {
+		this.#outputFormat = outputFormat
+			? this.#compatibleFormats.includes(outputFormat)
+				? outputFormat
+				: "jpg"
+			: "jpg";
 	}
 
 	//Return resized dimension from given sharp.metadata and new width/height
@@ -180,64 +185,66 @@ class Resize {
 		const width = sharpInstance.width as number;
 		const height = sharpInstance.height as number;
 		const aRatio = width / height;
-		let newWidth = null;
-		let newHeight = null;
 
 		if (this.#newWidth !== null && this.#newHeight !== null) {
-			newWidth = this.#newWidth;
-			newHeight = this.#newHeight;
+			return {
+				width: this.#newWidth,
+				height: this.#newHeight
+			}
 		}
 		//if the new width and height are not set,
 		//set the new width and height to the original width and height
 		if (this.#newWidth === null && this.#newHeight === null) {
-			newWidth = width;
-			newHeight = height;
+			return {
+
+				width : width,
+				height: height
+			}
 		}
 
 		//if the new width is set, but new height was not provided,
 		//calculate the new height based on the original height and width
 		if (this.#newWidth === null && this.#newHeight !== null) {
-			newWidth = height * aRatio;
+			return {
+				width : this.#newHeight * aRatio,
+				height: this.#newHeight
+			}
 		}
 
 		//if the new height is set, but new width was not provided,
 		//calculate the new width based on the original height and width
-		if (this.#newHeight !== null && this.#newWidth === null) {
-			newHeight = width / aRatio;
+		if (this.#newWidth !== null && this.#newHeight === null) {
+			return {
+				width: this.#newWidth,
+				height: this.#newWidth / aRatio
+			}
 		}
 
 		return {
-			width: newWidth as number,
-			height: newHeight as number
-		};
+			width: width,
+			height: height
+		}
+
 	}
 
-	async #checkSrcFile(file: string): Promise<boolean> {
+	async #checkSrcFile(file: string): Promise<void> {
 		try {
 			const stat = await fsp.stat(file);
-			try {
-				stat.isFile();
-				if (!this.#compatibleFormats.includes(path.extname(file))) {
-					throw new Error(`${file} is not a valid file.`);
+				if(!stat.isFile()) throw new Error(` isFile failed.  ${file} is not a valid file.`);
+				if (!this.#compatibleFormats.includes(path.extname(file).slice(1))) {
+					throw new Error(`${file} is not a valid file. ${path.extname(file).slice(1)}`);
 				}
-			} catch (e) {
-				throw new Error(`${file} is not a valid file. ${e}`);
-			}
 		} catch (e) {
-			throw new Error(`${file} is not a valid file.  ${e}`);
+			throw new Error(`stat failed.  ${file} is not a valid file.  ${e}`);
 		}
-		return true;
+		this.#srcFile = file;
 	}
 	//check if the passed directory path is valid
 	//throw an error if the path is not valid, or there's no file in the directory
-	async #checkSrcDir(dir: string): Promise<boolean> {
+	async #checkSrcDir(dir: string): Promise<void> {
 		try {
 			const stat = await fsp.stat(dir);
-			try {
 				stat.isDirectory();
-			} catch (e) {
-				throw new Error(`${dir} is not a valid directory. ${e}`);
-			}
 		} catch (e) {
 			throw new Error(`${dir} is not a valid directory.  ${e}`);
 		}
@@ -249,15 +256,20 @@ class Resize {
 			});
 
 			this.#srcFiles = dirent
-				.filter((d) => d.isFile() && this.#compatibleFormats.includes(path.extname(d.name)))
-				.map((d) => d.name);
+				.filter((d) => d.isFile() && this.#compatibleFormats.includes(path.extname(d.name).slice(1)))
+				.map((d) => {
+				const newPath = path.resolve(d.parentPath).replace(path.resolve(dir),"");
+					return path.join(newPath, d.name)
+		});
+		console.log(this.#srcFiles);
 			if (dirent.length === 0 || this.#srcFiles.length === 0) {
 				throw new Error(`${dir} does not contain compatible image file.`);
 			}
 		} catch (e) {
 			throw new Error(`${dir} is not a valid directory.  ${e}`);
 		}
-		return true;
+		
+		this.#srcDir = dir;
 	}
 
 	//check passed dir path as a valid destination directory.
@@ -299,98 +311,4 @@ class Resize {
 	}
 }
 
-export default Resize;
-
-const r = new Resize();
-/*
-export default async function resizeImg(
-	srcDir: string,
-	dstDir: string,
-	quality = 99,
-	extension = "jpg",
-	option: Partial<option> = {}
-) {
-	const compatibleFileFomats = [
-		"jpeg",
-		"jpg",
-		"png",
-		"webp",
-		"gif",
-		"jp2",
-		"tiff",
-		"avif",
-		"heif",
-		"jxl",
-		"raw",
-		"tile"
-	];
-
-	const outputFormat: outputFunction = {
-		jpg: (instance) => {
-			return instance.clone().jpeg({ quality: quality, mozjpeg: true });
-		},
-		jpeg: (instance) => {
-			return instance.clone().jpeg({ quality: quality, mozjpeg: true });
-		},
-		png: (instance) => {
-			return instance.clone().png({ quality: quality, compressionLevel: 8 });
-		},
-		webp: (instance) => {
-			return instance.clone().webp({ quality: quality, lossless: true });
-		}
-	};
-
-	if (!compatibleFileFomats.includes(extension))
-		throw new Error(`Passed extention of "${extension} is incompatible with this program.`);
-
-	if (!fs.existsSync(srcDir)) throw new Error(`Source directory ${srcDir} does not exist.`);
-	if (quality > 100 || quality < 1)
-		throw new Error(`Value (${quality}) of quality needs to be between 1 to 100. `);
-
-	const pickImgFiles = (Dirent: fs.Dirent) => {
-		if (!Dirent.isFile()) return false;
-		const ext = Dirent.name.match(/\.([^.]+)$/) && RegExp.$1;
-		return ext === null ? false : compatibleFileFomats.includes(ext);
-	};
-	const srcFileDirents = fs.readdirSync(srcDir, { withFileTypes: true }).filter(pickImgFiles);
-
-	const resizeParams: ResizeOptions = option;
-	resizeParams.kernel = sharp.kernel.lanczos3;
-	if (Object.hasOwn(option, "height") && Object.hasOwn(option, "width")) {
-		resizeParams.fit = "outside";
-	}
-
-	checkDir(dstDir);
-
-	for (const dirent of srcFileDirents) {
-		const srcFullPath = `${dirent.path}\\${dirent.name}`;
-		const dstFileName = dirent.name.replace(/\.[^.]+$/, `.${extension}`);
-		const dstFilePath = `${dstDir}\\${dstFileName}`;
-
-		const image = sharp(srcFullPath).resize(resizeParams);
-		Object.keys(outputFormat).includes(extension)
-			? outputFormat[extension as outputformat](image).toFile(dstFilePath)
-			: image.toFormat(extension as keyof FormatEnum).toFile(dstFilePath);
-	}
-
-	const statusChecker = new Promise((resolve) => {
-		setInterval(() => {
-			if (checkStatus()) {
-				resolve("process completed.");
-			}
-		}, 1000);
-	});
-
-	statusChecker.then((m) => {
-		console.log(m);
-		process.exit();
-	});
-
-	function checkStatus() {
-		const outputs = fs
-			.readdirSync(dstDir, { withFileTypes: true })
-			.filter((Dirent) => Dirent.name.match(extension));
-		return outputs.length === srcFileDirents.length ? true : false;
-	}
-}
-*/
+export default ImgL;
