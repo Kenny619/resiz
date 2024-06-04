@@ -1,12 +1,13 @@
-import ImgL from "../src/resize";
+import ImgL from "../dist/resize.js";
 
 const option = {
-	source: "H:\\storage\\img\\pic_temp\\sd\\selected\\_NFT\\cand\\00071-460809627.png",
-	//width: 100,
-	height: 4096,
+	//source: "H:\\storage\\img\\pic_temp\\sd\\selected\\_NFT\\cand\\00071-460809627.png",
+	source: "./test/imgs/multiple",
+	width: 6000,
+	//height: 800,
 	quality: 100,
-	format: "jpg",
-	destination: "H:\\storage\\img\\pic_temp\\sd\\selected\\_NFT\\enlarged\\"
+	outputFormat: "jpg"
+	//destination: "../test/imgs/multiple/output/"
 };
 const img = new ImgL();
 img.resize(option);
