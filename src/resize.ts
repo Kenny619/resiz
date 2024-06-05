@@ -1,8 +1,7 @@
 import fsp from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
-import { Worker, isMainThread, workerData, parentPort } from "node:worker_threads";
-import { fileURLToPath } from "node:url";
+import { Worker } from "node:worker_threads";
 import * as images from "./utils/images.js";
 import * as validation from "./utils/validations.js";
 import * as utils from "./utils/helpers.js";
@@ -14,7 +13,6 @@ type inputOptions = {
 	height?: number;
 	quality?: number;
 	outputFormat?: string;
-	callback?: () => void;
 };
 
 class ImgL {
@@ -83,11 +81,22 @@ class ImgL {
 		}
 
 		//set quality
-		if (option.quality) this.#quality = option.quality;
+		if (option.quality) {
+			if (option.quality < 1 || option.quality > 100)
+				throw new Error("quality must be between 1 and 100");
+			this.#quality = option.quality;
+		}
 
 		//set width and height
-		if (width) this.#newWidth = width;
-		if (height) this.#newHeight = height;
+		if (width) {
+			if (width < 1 || typeof width !== "number") throw new Error("width must be greater than 0");
+			this.#newWidth = width;
+		}
+		if (height) {
+			if (height < 1 || typeof height !== "number")
+				throw new Error("height must be greater than 0");
+			this.#newHeight = height;
+		}
 
 		//set output format
 		this.#setOutputFormat(outputFormat);
@@ -102,9 +111,9 @@ class ImgL {
 		if (this.#srcFile) {
 			try {
 				await this.#getResizeInstance(this.#srcFile);
-				if (Object.hasOwn(option, "callback") && typeof option.callback === "function") {
-					option.callback();
-				}
+				// if (Object.hasOwn(option, "callback") && typeof option.callback === "function") {
+				// 	option.callback();
+				// }
 			} catch (e) {
 				throw `${e}`;
 			}
