@@ -4,6 +4,7 @@ import { Worker, isMainThread, workerData, parentPort } from "node:worker_thread
 import sharp from "sharp";
 import type { FormatEnum } from "sharp";
 import { fileURLToPath } from "node:url";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 type inputOptions = {
 	source: string;
@@ -58,15 +59,28 @@ class ImgL {
 	}
 
 	async resize(option: inputOptions) {
-		await this.#validateInputOptions(option);
+		try {
+			await this.#validateInputOptions(option);
+		} catch (e) {
+			throw new Error(`${e}`);
+		}
 
 		if (this.#srcFile) {
-			await this.#resizeSingleFile(this.#srcFile);
+			try {
+				await this.#resizeSingleFile(this.#srcFile);
+			} catch (e) {
+				throw new Error(`${e}`);
+			}
 		}
 
 		if (this.#srcDir) {
-			const workers = this.#srcFiles.map((file) => this.#workerWrapper(file));
-			await Promise.all(workers);
+			for (const srcFile of this.#srcFiles) {
+				option.source = srcFile;
+				option.destination = this.#dstDir;
+				const worker = new Worker(path.join(__dirname, "task.js"), {
+					workerData: option
+				});
+			}
 		}
 	}
 
@@ -94,27 +108,6 @@ class ImgL {
 		this.#setOutputFormat(outputFormat);
 		//set destination
 		await this.#setDstDir(source, destination);
-	}
-
-	async #workerWrapper(file: string): Promise<void> {
-		const __filename = fileURLToPath(import.meta.url);
-
-		return new Promise((resolve, reject) => {
-			if (isMainThread) {
-				const worker = new Worker(__filename, { workerData: file });
-
-				worker.on("message", resolve); // Resolve promise when done
-				worker.on("error", reject); // Reject promise on error
-				worker.on("exit", (code) => {
-					if (code !== 0) {
-						reject(new Error(`Worker stopped with exit code ${code}`));
-					}
-				});
-			} else {
-				this.#resizeSingleFile(workerData);
-				parentPort?.postMessage(` \"${workerData}\".`);
-			}
-		});
 	}
 
 	async #resizeSingleFile(filePath: string): Promise<sharp.OutputInfo> {
@@ -227,7 +220,7 @@ class ImgL {
 
 	//Return resized dimension from given sharp.metadata and new width/height
 	#setNewDimension(width: number, height: number): { width: number; height: number } {
-		const aRatio = width / height;
+		const aRatio = Math.ceil(width / height);
 
 		if (this.#newWidth !== null && this.#newHeight !== null) {
 			return {
@@ -248,7 +241,7 @@ class ImgL {
 		//calculate the new height based on the original height and width
 		if (this.#newWidth === null && this.#newHeight !== null) {
 			return {
-				width: this.#newHeight * aRatio,
+				width: Math.ceil(this.#newHeight * aRatio),
 				height: this.#newHeight
 			};
 		}
@@ -258,7 +251,7 @@ class ImgL {
 		if (this.#newWidth !== null && this.#newHeight === null) {
 			return {
 				width: this.#newWidth,
-				height: this.#newWidth / aRatio
+				height: Math.ceil(this.#newWidth / aRatio)
 			};
 		}
 
@@ -301,8 +294,9 @@ class ImgL {
 					(d) => d.isFile() && this.#compatibleFormats.includes(path.extname(d.name).slice(1))
 				)
 				.map((d) => {
-					const newPath = path.resolve(d.parentPath).replace(path.resolve(dir), "");
-					return path.join(newPath, d.name);
+					//const newPath = path.resolve(d.parentPath).replace(path.resolve(dir), "");
+					//return path.join(newPath, d.name);
+					return path.resolve(path.join(d.parentPath, d.name));
 				});
 			console.log(this.#srcFiles);
 			if (dirent.length === 0 || this.#srcFiles.length === 0) {
