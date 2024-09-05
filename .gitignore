@@ -1,3 +1,6 @@
+#regulars
+*.code-workspace
+biome.json
 # Logs
 logs
 *.log

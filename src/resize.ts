@@ -74,7 +74,7 @@ class ImgL {
 		const { source, destination, width, height, outputFormat } = option;
 
 		//validate and set source
-		if (!source) throw new Error("source is required");
+		if (!source) throw new Error("Specify the source fle or directory.");
 
 		try {
 			const stat = await fsp.stat(source);
