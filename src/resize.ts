@@ -137,14 +137,22 @@ class ImgL {
 		}
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	async #getResizeInstance(srcFile: string): Promise<any> {
+	async #validateInputOptions(option: inputOptions): Promise<void> {
+		const { source, destination, width, height, outputFormat } = option;
+
+		//validate and set source
+		if (!source) throw new Error("Specify the source fle or directory.");
+
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	/*
+    async #getResizeInstance(srcFile: string): Promise<any> {
 		//initialize instance
 		const resizeInstance = images.setOutputFormatQuality(
 			srcFile,
 			this.#quality,
 			this.#outputFormat
 		);
+    */
 
 		try {
 			//calculate new dimension

@@ -1,3 +1,6 @@
+#regulars
+*.code-workspace
+biome.json
 #test files
 test/imgs/
 .DS_Store

@@ -1,5 +1,5 @@
 {
-	"name": "imglib",
+	"name": "resiz",
 	"version": "0.0.1",
 	"description": "",
 	"main": "/dist/index.js",
@@ -11,14 +11,14 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/Kenny619/imgLib.git"
+		"url": "git+https://github.com/Kenny619/resiz.git"
 	},
 	"author": "",
 	"license": "MIT",
 	"bugs": {
-		"url": "https://github.com/Kenny619/imgLib/issues"
+		"url": "https://github.com/Kenny619/resiz/issues"
 	},
-	"homepage": "https://github.com/Kenny619/imgLib#readme",
+	"homepage": "https://github.com/Kenny619/resiz#readme",
 	"devDependencies": {
 		"@biomejs/biome": "1.7.3",
 		"@types/node": "^20.12.13",

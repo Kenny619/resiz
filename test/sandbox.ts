@@ -1,13 +1,10 @@
-import ImgL from "../dist/resize.js";
+import resiz from "../src/index";
 
 const option = {
-	//source: "H:\\storage\\img\\pic_temp\\sd\\selected\\_NFT\\cand\\00071-460809627.png",
-	source: "./test/imgs/multiple",
-	width: 6000,
-	//height: 800,
-	quality: 100,
-	outputFormat: "jpg"
-	//destination: "../test/imgs/multiple/output/"
+	source: "C:\\Users\\kenny\\OneDrive\\Pictures\\album",
+	//width: 100,
+	height: 2048,
+	quality: 98,
+	format: "jpg",
 };
-const img = new ImgL();
-img.resize(option);
+resiz.run(option);
