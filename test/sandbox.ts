@@ -1,10 +1,11 @@
-import resiz from "../src/index";
+import resiz from "../dist/index.js";
 
 const option = {
-	source: "C:\\Users\\kenny\\OneDrive\\Pictures\\album",
+	source: "../../Downloads/wallpaper",
+	// source: "../../Downloads/wallpaper/animation-black-blur-262297.jpg",
 	//width: 100,
 	height: 2048,
 	quality: 98,
-	format: "jpg",
+	format: "jpg"
 };
 resiz.run(option);

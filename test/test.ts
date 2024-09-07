@@ -1,95 +1,36 @@
-import ImgL from "../src/resize.ts";
-import { describe, expect, test } from "vitest";
+import path from "node:path";
+import fsp from "node:fs/promises";
 
-const srcFile ="./imgs/Kenny_avatar.jpg";
-const width = 800;
-const height = 400;
-const outputFormat = "gif";
-const option = {
-	source: "./test/imgs/",
-	width: 800,
-	height: 400,
-	outputFormat: outputFormat,
-	destination: "./test/imgs/multiple/"
+const format = [".jpg", ".png", ".webp"];
+const filePaths = await fsp
+	.readdir("../../Downloads", { withFileTypes: true, recursive: true })
+	.then((dirents) => dirents.map((d) => path.resolve(process.cwd(), path.join(d.path, d.name))))
+	.then((filePaths) => filePaths.filter((filePath) => format.includes(path.extname(filePath).toLowerCase())));
+
+async function setSrcDir(source: string): Promise<string> {
+	try {
+		const filePaths = await fsp
+			.readdir(source as string, {
+				withFileTypes: true,
+				recursive: true
+			})
+			.then((dirent) => dirent.map((d) => path.resolve(process.cwd(), path.join(d.parentPath, d.name))))
+			.then((filePaths) => filePaths.filter((filePath) => format.includes(path.extname(filePath))));
+
+		if (filePaths.length === 0) {
+			throw new Error(`${source} does not contain compatible image file.`);
+		}
+	} catch (e) {
+		throw new Error(`Failed to read files in dir: ${source}.  ${e}`);
+	}
+
+	//set absolute path
+	const srcDir = path.resolve(process.cwd(), source as string);
+	return srcDir;
 }
-const img = new ImgL();
-await img.resize(option);
 
-/*Scenarios
+// const srcDir = await setSrcDir("../../Downloads");
+// console.log("srcDir -->", srcDir);
 
-fn: validateSrcAndDst
-01. Valid srcDir and valid dstDir resolves 
-02. Valid srcDir with invalid dstDir throws validateSrcAndDst failed error
-03. Empty srcDir with valid dstDir throws No files in source directory error 
-04. srcDir === dstDir throws source directory and destination directory cannot be the same error 
-05. Using a filename instead of directory name for srcDir throws validateSrcAndDst failed error 
-06. Using a filename instead of directory name for dstcDir throws validateSrcAndDst failed error 
-07. Setting a non-path string to srcDir throws validateSrcAndDst failed error 
-08. Setting a non-path string to dstDir throws validateSrcAndDst failed error 
-
-*/
-/*
-describe("Fn: validateSrcAndDst", () => {
-	test("01. Valid srcDir and valid dstDir resolves", async () => {
-		const srcDir = "./src/tests/files/srcDir";
-		const dstDir = "./src/tests/files/dstDir";
-		await expect(dirl.validateSrcAndDst(srcDir, dstDir)).resolves;
-	});
-
-	test("02. Valid srcDir with invalid dstDir throws validateSrcAndDst failed error", async () => {
-		const srcDir = "./src/tests/files/srcDir";
-		const dstDir = "Z:\\homed\\stDir";
-		await expect(dirl.validateSrcAndDst(srcDir, dstDir)).rejects.toThrowError(
-			/validateSrcAndDst failed/
-		);
-	});
-
-	test("03. Empty srcDir with valid dstDir throws No files in source directory error", async () => {
-		const srcDir = "./src/tests/files/emptyDir";
-		const dstDir = "./src/tests/files/dstDir";
-		await expect(dirl.validateSrcAndDst(srcDir, dstDir)).rejects.toThrowError(
-			/No files in source directory/
-		);
-	});
-
-	test("04. srcDir === dstDir throws source directory and destination directory cannot be the same error", async () => {
-		const srcDir = "./src/tests/files/srcDir";
-		const dstDir = "./src/tests/files/srcDir";
-		await expect(dirl.validateSrcAndDst(srcDir, dstDir)).rejects.toThrowError(
-			/source directory and destination directory/
-		);
-	});
-
-	test("05. Using a filename instead of directory name for srcDir throws validateSrcAndDst failed error", async () => {
-		const srcDir = "./src/tests/files/srcDir/srcfile.txt";
-		const dstDir = "./src/tests/files/dstDir";
-		await expect(dirl.validateSrcAndDst(srcDir, dstDir)).rejects.toThrowError(
-			/validateSrcAndDst failed/
-		);
-	});
-
-	test("06. Using a filename instead of directory name for dstcDir throws validateSrcAndDst failed error", async () => {
-		const srcDir = "./src/tests/files/srcDir/";
-		const dstDir = "./src/tests/files/dstDir/dstfile.txt";
-		await expect(dirl.validateSrcAndDst(srcDir, dstDir)).rejects.toThrowError(
-			/validateSrcAndDst failed/
-		);
-	});
-
-	test("07. Setting a non-path string to srcDir throws validateSrcAndDst failed error", async () => {
-		const srcDir = "this is the source";
-		const dstDir = "./src/tests/files/dstDir";
-		await expect(dirl.validateSrcAndDst(srcDir, dstDir)).rejects.toThrowError(
-			/validateSrcAndDst failed/
-		);
-	});
-
-	test("08. Setting a non-path string to dstDir throws validateSrcAndDst failed error", async () => {
-		const srcDir = "./src/tests/files/srcDir";
-		const dstDir = "?*?";
-		await expect(dirl.validateSrcAndDst(srcDir, dstDir)).rejects.toThrowError(
-			/validateSrcAndDst failed/
-		);
-	});
-});
-*/
+const str = "";
+if (!str) console.log("empty string");
