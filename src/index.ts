@@ -70,8 +70,8 @@ class Resiz {
 		}
 
 		try {
-			//const workers = this.#srcFiles.map((file) => this.workerWrapper(file));
-			const workers = this.#srcFiles.map((file) => this.resizeSingleFile(file));
+			const workers = this.#srcFiles.map((file) => this.workerWrapper(file));
+			// const workers = this.#srcFiles.map((file) => this.resizeSingleFile(file));
 			await Promise.all(workers).then(() => console.log("done"));
 		} catch (e) {
 			throw `${e}`;
@@ -215,12 +215,14 @@ class Resiz {
 
 	async resizeSingleFile(filePath: string): Promise<void> {
 		//initialize sharp instance
-		//const { outputFormat, quality, dstDir, newWidth, newHeight } = workerData;
-		const outputFormat = this.#outputFormat;
-		const quality = this.#quality;
-		const dstDir = this.#dstDir;
-		const newWidth = this.#newWidth;
-		const newHeight = this.#newHeight;
+		const { outputFormat, quality, dstDir, newWidth, newHeight } = workerData;
+
+		// const outputFormat = this.#outputFormat;
+		// const quality = this.#quality;
+		// const dstDir = this.#dstDir;
+		// const newWidth = this.#newWidth;
+		// const newHeight = this.#newHeight;
+
 		const sharpInstance = sharp(filePath);
 		//set new dimension
 
